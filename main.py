@@ -12,5 +12,5 @@ async def on_ready():
 async def ping(ctx):
     await ctx.send(f"Проверка успешна {round(bot.latency * 1000)}ms")
 
-bot.run("TOKEN")
+bot.run(os.getenv("TOKEN"))
 
