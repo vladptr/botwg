@@ -21,70 +21,70 @@ class AuthModal(discord.ui.Modal, title="Авторизация в клане"):
     ur = discord.ui.TextInput(label="Играешь укрепрайоны? (да/нет)", placeholder="да или нет")
 
     async def on_submit(self, interaction: discord.Interaction):
-        nick_value = self.nick.value.strip()
-        name_value = self.name.value.strip()
-        ur_value = self.ur.value.lower().strip()
-
-        params = {
-            "application_id": WOT_API_KEY,
-            "search": nick_value,
-            "type": "startswith",
-            "limit": 5
-        }
-
         try:
+            nick_value = self.nick.value.strip()
+            name_value = self.name.value.strip()
+            ur_value = self.ur.value.lower().strip()
+
+            params = {
+                "application_id": WOT_API_KEY,
+                "search": nick_value,
+                "type": "startswith",
+                "limit": 5
+            }
+
             r = requests.get("https://api.worldoftanks.eu/wot/account/list/", params=params, timeout=10).json()
             print("account/list response:", r)
-        except Exception as e:
-            await interaction.user.send(f"Ошибка запроса account/list: {e}")
-            return
 
-        data = r.get("data", [])
-        account_id = None
+            data = r.get("data", [])
+            account_id = None
 
-        if isinstance(data, dict):
-            for acc_id, info in data.items():
-                print("Найден ник:", info.get("nickname"))
-                if info.get("nickname", "").upper() == nick_value.upper():
-                    account_id = acc_id
-                    break
-            if not account_id and data:
-                account_id = list(data.keys())[0]
-        elif isinstance(data, list):
-            for info in data:
-                print("Найден ник:", info.get("nickname"))
-                if info.get("nickname", "").upper() == nick_value.upper():
-                    account_id = info.get("account_id")
-                    break
-            if not account_id and data:
-                account_id = data[0].get("account_id")
+            if isinstance(data, dict):
+                for acc_id, info in data.items():
+                    if info.get("nickname", "").upper() == nick_value.upper():
+                        account_id = acc_id
+                        break
+                if not account_id and data:
+                    account_id = list(data.keys())[0]
+            elif isinstance(data, list):
+                for info in data:
+                    if info.get("nickname", "").upper() == nick_value.upper():
+                        account_id = info.get("account_id")
+                        break
+                if not account_id and data:
+                    account_id = data[0].get("account_id")
 
-        if not account_id:
-            await interaction.user.send(f"Ошибка: игрок '{nick_value}' не найден! Ответ API: {r}")
-            return
-
-        try:
+            if not account_id:
+                await interaction.user.send(f"Ошибка: игрок '{nick_value}' не найден! Ответ API: {r}")
+                return
             r2 = requests.get("https://api.worldoftanks.eu/wot/account/info/", params={
                 "application_id": WOT_API_KEY,
                 "account_id": account_id,
                 "fields": "clan_id,nickname"
             }, timeout=10).json()
             print("account/info response:", r2)
-        except Exception as e:
-            await interaction.user.send(f"Ошибка запроса account/info: {e}")
-            return
 
-        player_data = r2.get("data", {}).get(account_id, {})
-        player_clan_id = player_data.get("clan_id", 0)
-        player_nick = player_data.get("nickname", nick_value)
+            player_data = r2.get("data", {}).get(account_id, {})
+            player_clan_id = player_data.get("clan_id", 0)
+            player_nick = player_data.get("nickname", nick_value)
 
-        if player_clan_id != int(CLAN_ID):
-            await interaction.user.send(f"Ошибка: игрок '{player_nick}' не в клане! Ответ API: {player_data}")
-        else:
+            if player_clan_id != int(CLAN_ID):
+                await interaction.user.send(f"Ошибка: игрок '{player_nick}' не в клане! Ответ API: {player_data}")
+                return
+
             guild = interaction.guild
+            if not guild:
+                await interaction.user.send("Ошибка: невозможно получить сервер (guild is None).")
+                return
+
             member = guild.get_member(interaction.user.id)
+            if not member:
+                await interaction.user.send("Ошибка: невозможно найти участника на сервере.")
+                return
+
             role_to_add = guild.get_role(ROLE_TO_ADD)
             role_to_remove = guild.get_role(ROLE_TO_REMOVE)
+
             if role_to_remove:
                 await member.remove_roles(role_to_remove)
             if role_to_add:
@@ -92,6 +92,13 @@ class AuthModal(discord.ui.Modal, title="Авторизация в клане"):
 
             await interaction.user.send(f"Добро пожаловать в клан '{player_nick} ({name_value})'!")
 
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            try:
+                await interaction.user.send(f"Произошла ошибка при авторизации: {e}")
+            except:
+                pass
 
 class AuthButton(discord.ui.View):
     @discord.ui.button(label="Авторизоваться", style=discord.ButtonStyle.green)
