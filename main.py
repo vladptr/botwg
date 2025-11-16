@@ -34,24 +34,34 @@ class AuthModal(discord.ui.Modal, title="Авторизация в клане"):
 
         try:
             r = requests.get("https://api.worldoftanks.eu/wot/account/list/", params=params, timeout=10).json()
-            print("account/list response:", r)  # отладка
+            print("account/list response:", r)
         except Exception as e:
             await interaction.user.send(f"Ошибка запроса account/list: {e}")
             return
 
-        if "data" not in r or not r["data"]:
-            await interaction.user.send(f"Ошибка: игрок '{nick_value}' не найден! Ответ API: {r}")
-            return
+        data = r.get("data", [])
         account_id = None
-        for acc_id, info in r["data"].items():
-            print("Найден ник:", info.get("nickname"))  # отладка
-            if info.get("nickname", "").upper() == nick_value.upper():
-                account_id = acc_id
-                break
+
+        if isinstance(data, dict):
+            for acc_id, info in data.items():
+                print("Найден ник:", info.get("nickname"))
+                if info.get("nickname", "").upper() == nick_value.upper():
+                    account_id = acc_id
+                    break
+            if not account_id and data:
+                account_id = list(data.keys())[0]
+        elif isinstance(data, list):
+            for info in data:
+                print("Найден ник:", info.get("nickname"))
+                if info.get("nickname", "").upper() == nick_value.upper():
+                    account_id = info.get("account_id")
+                    break
+            if not account_id and data:
+                account_id = data[0].get("account_id")
 
         if not account_id:
-            account_id = list(r["data"].keys())[0]
-            print("Выбрали первый account_id:", account_id)
+            await interaction.user.send(f"Ошибка: игрок '{nick_value}' не найден! Ответ API: {r}")
+            return
 
         try:
             r2 = requests.get("https://api.worldoftanks.eu/wot/account/info/", params={
@@ -81,6 +91,7 @@ class AuthModal(discord.ui.Modal, title="Авторизация в клане"):
                 await member.add_roles(role_to_add)
 
             await interaction.user.send(f"Добро пожаловать в клан '{player_nick} ({name_value})'!")
+
 
 class AuthButton(discord.ui.View):
     @discord.ui.button(label="Авторизоваться", style=discord.ButtonStyle.green)
