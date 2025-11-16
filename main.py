@@ -4,8 +4,10 @@ import requests
 import os
 from webservis import keep_alive
 
-bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
+intents = discord.Intents.all()
 intents.message_content = True
+bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
+
 
 WOT_API_KEY = "97d79abe59b0145f55a621ab80ad9a22"
 CLAN_ID = "500242135"
