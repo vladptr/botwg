@@ -132,11 +132,9 @@ async def check(ctx, *, nickname: str):
             "limit": 5
         }, timeout=10).json()
 
-        await ctx.author.send(f"Ответ account/list:\n{r}")
-
         data = r.get("data", [])
         if not data:
-            await ctx.author.send("Игрок не найден!")
+            await ctx.author.send(f"Игрок '{nickname}' не найден!")
             return
 
         if isinstance(data, dict):
@@ -149,10 +147,13 @@ async def check(ctx, *, nickname: str):
         r2 = requests.get("https://api.worldoftanks.eu/wot/account/info/", params={
             "application_id": WOT_API_KEY,
             "account_id": account_id,
-            "fields": "clan_id,nickname,created_at,statistics"
+            "fields": "clan_id"
         }, timeout=10).json()
 
-        await ctx.author.send(f"Ответ account/info:\n{r2}")
+        player_data = r2.get("data", {}).get(str(account_id), {})
+        player_clan_id = player_data.get("clan_id", 0)
+
+        await ctx.author.send(f"Игрок: {nickname}\nAccount ID: {account_id}\nClan ID: {player_clan_id}")
 
     except Exception as e:
         await ctx.author.send(f"Произошла ошибка при запросе API: {e}")
