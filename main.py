@@ -4,6 +4,13 @@ import requests
 import os
 from webservis import keep_alive
 
+try:
+    RENDER_IP = requests.get("https://api.ipify.org", timeout=5).text
+    print(f"Публичный IP Render: {RENDER_IP}")
+except Exception as e:
+    print(f"Не удалось определить IP Render: {e}")
+    RENDER_IP = None
+
 intents = discord.Intents.all()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -57,6 +64,7 @@ class AuthModal(discord.ui.Modal, title="Авторизация в клане"):
             if not account_id:
                 await interaction.user.send(f"Ошибка: игрок '{nick_value}' не найден! Ответ API: {r}")
                 return
+
             r2 = requests.get("https://api.worldoftanks.eu/wot/account/info/", params={
                 "application_id": WOT_API_KEY,
                 "account_id": account_id,
