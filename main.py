@@ -88,13 +88,10 @@ class AuthButton(discord.ui.View):
 async def ensure_auth_message():
     await bot.wait_until_ready()
     channel = bot.get_channel(TARGET_CHANNEL_ID)
-    if not channel:
-        return
-    async for message in channel.history(limit=50):
-        if message.author == bot.user and message.components:
-            return
-    view = AuthButton()
-    await channel.send("Нажмите кнопку для авторизации в клане:", view=view)
+    if channel:
+        view = AuthButton()
+        await channel.send("Нажмите кнопку для авторизации в клане:", view=view)
+
 
 async def check_clan_members_continuous():
     await bot.wait_until_ready()
