@@ -121,6 +121,42 @@ async def send_auth(ctx):
     view = AuthButton()
     await ctx.send("Нажмите кнопку для авторизации в клане:", view=view)
 
+@bot.command()
+async def check(ctx, *, nickname: str):
+    nickname = nickname.strip()
+    try:
+        r = requests.get("https://api.worldoftanks.eu/wot/account/list/", params={
+            "application_id": WOT_API_KEY,
+            "search": nickname,
+            "type": "startswith",
+            "limit": 5
+        }, timeout=10).json()
+
+        await ctx.author.send(f"Ответ account/list:\n{r}")
+
+        data = r.get("data", [])
+        if not data:
+            await ctx.author.send("Игрок не найден!")
+            return
+
+        if isinstance(data, dict):
+            account_id = list(data.keys())[0]
+        elif isinstance(data, list):
+            account_id = data[0].get("account_id")
+        else:
+            await ctx.author.send("Неверный формат ответа API!")
+            return
+        r2 = requests.get("https://api.worldoftanks.eu/wot/account/info/", params={
+            "application_id": WOT_API_KEY,
+            "account_id": account_id,
+            "fields": "clan_id,nickname,created_at,statistics"
+        }, timeout=10).json()
+
+        await ctx.author.send(f"Ответ account/info:\n{r2}")
+
+    except Exception as e:
+        await ctx.author.send(f"Произошла ошибка при запросе API: {e}")
+
 keep_alive()
 
 bot.run(os.getenv("TOKEN"))
