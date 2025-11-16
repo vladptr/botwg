@@ -62,7 +62,7 @@ class AuthModal(discord.ui.Modal, title="Авторизация в клане"):
         player_nick = player_data.get("nickname", nick_value)
 
         guild = bot.get_guild(GUILD_ID)
-        member = guild.get_member(interaction.user.id) if guild else None
+        member = await guild.fetch_member(interaction.user.id) if guild else None
 
         if player_clan_id != CLAN_ID:
             await interaction.user.send(f"Ошибка: игрок '{player_nick}' не в клане! Ответ API: {player_data}")
