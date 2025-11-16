@@ -21,53 +21,55 @@ class AuthModal(discord.ui.Modal, title="Авторизация в клане"):
     ur = discord.ui.TextInput(label="Играешь укрепрайоны? (да/нет)", placeholder="да или нет")
 
     async def on_submit(self, interaction: discord.Interaction):
-        nick_value = self.nick.value.strip()
-        name_value = self.name.value.strip()
-        ur_value = self.ur.value.lower().strip()
-
         try:
+            nick_value = self.nick.value.strip()
+            name_value = self.name.value.strip()
+            ur_value = self.ur.value.lower().strip()
+
             r = requests.get("https://api.worldoftanks.eu/wot/account/list/", params={
                 "application_id": WOT_API_KEY,
                 "search": nick_value,
                 "type": "startswith",
                 "limit": 5
             }, timeout=10).json()
-        except Exception as e:
-            await interaction.user.send(f"Ошибка запроса account/list: {e}")
-            return
 
-        data = r.get("data", [])
-        if not data:
-            await interaction.user.send(f"Игрок '{nick_value}' не найден! Ответ API: {r}")
-            return
+            data = r.get("data", [])
+            if not data:
+                await interaction.user.send(f"Игрок '{nick_value}' не найден! Ответ API: {r}")
+                return
 
-        if isinstance(data, dict):
-            account_id = list(data.keys())[0]
-        elif isinstance(data, list):
-            account_id = data[0].get("account_id")
-        else:
-            await interaction.user.send("Неверный формат ответа API!")
-            return
+            if isinstance(data, dict):
+                account_id = list(data.keys())[0]
+            elif isinstance(data, list):
+                account_id = data[0].get("account_id")
+            else:
+                await interaction.user.send("Неверный формат ответа API!")
+                return
 
-        try:
             r2 = requests.get("https://api.worldoftanks.eu/wot/account/info/", params={
                 "application_id": WOT_API_KEY,
                 "account_id": account_id,
                 "fields": "clan_id,nickname"
             }, timeout=10).json()
-        except Exception as e:
-            await interaction.user.send(f"Ошибка запроса account/info: {e}")
-            return
 
-        player_data = r2.get("data", {}).get(str(account_id), {})
-        player_clan_id = player_data.get("clan_id", 0)
-        player_nick = player_data.get("nickname", nick_value)
+            player_data = r2.get("data", {}).get(str(account_id), {})
+            player_clan_id = player_data.get("clan_id", 0)
+            player_nick = player_data.get("nickname", nick_value)
 
-        if player_clan_id != CLAN_ID:
-            await interaction.user.send(f"Ошибка: игрок '{player_nick}' не в клане! Ответ API: {player_data}")
-        else:
+            # Получаем участника сервера
             guild = interaction.guild
             member = guild.get_member(interaction.user.id)
+
+            if player_clan_id != CLAN_ID:
+                try:
+                    await interaction.user.send(f"Ошибка: игрок '{player_nick}' не в клане! Ответ API: {player_data}")
+                except discord.Forbidden:
+                    await interaction.response.send_message(
+                        f"Не могу отправить ЛС, {interaction.user.mention}, включите прием сообщений от участников сервера.",
+                        ephemeral=True
+                    )
+                return
+
             role_to_add = guild.get_role(ROLE_TO_ADD)
             role_to_remove = guild.get_role(ROLE_TO_REMOVE)
             if role_to_remove:
@@ -75,7 +77,23 @@ class AuthModal(discord.ui.Modal, title="Авторизация в клане"):
             if role_to_add:
                 await member.add_roles(role_to_add)
 
-            await interaction.user.send(f"Добро пожаловать в клан '{player_nick} ({name_value})'!")
+            try:
+                await interaction.user.send(f"Добро пожаловать в клан '{player_nick} ({name_value})'!")
+            except discord.Forbidden:
+                await interaction.response.send_message(
+                    f"Не могу отправить ЛС, {interaction.user.mention}, включите прием сообщений от участников сервера.",
+                    ephemeral=True
+                )
+
+        except Exception as e:
+            print(f"Ошибка в on_submit: {e}")
+            try:
+                await interaction.user.send(f"Произошла внутренняя ошибка: {e}")
+            except discord.Forbidden:
+                await interaction.response.send_message(
+                    f"Произошла внутренняя ошибка: {e}", ephemeral=True
+                )
+
 
 class AuthButton(discord.ui.View):
     @discord.ui.button(label="Авторизоваться", style=discord.ButtonStyle.green)
