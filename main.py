@@ -81,9 +81,13 @@ class AuthModal(discord.ui.Modal, title="Авторизация в клане"):
             await interaction.user.send(f"Добро пожаловать в клан '{player_nick} ({name_value})'!")
 
 class AuthButton(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
     @discord.ui.button(label="Авторизоваться", style=discord.ButtonStyle.green)
     async def auth(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(AuthModal())
+
 
 async def ensure_auth_message():
     await bot.wait_until_ready()
