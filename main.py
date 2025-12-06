@@ -14,8 +14,8 @@ CLAN_ID = 500348333
 GUILD_ID = 1444626896422965411
 
 TARGET_CHANNEL_ID = 1446969492830818508
-ROLE_TO_ADD = 1192773043219615805
-ROLE_TO_REMOVE = 1192784555921379389
+ROLE_TO_ADD = 1444707586946633851
+ROLE_TO_REMOVE = 1444707587961524389
 
 class AuthModal(discord.ui.Modal, title="Авторизация в клане"):
     nick = discord.ui.TextInput(label="Никнейм в игре", placeholder="Введите никнейм")
