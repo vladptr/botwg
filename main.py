@@ -23,38 +23,51 @@ class AuthModal(discord.ui.Modal, title="Авторизация в клане"):
     ur = discord.ui.TextInput(label="Играешь укрепрайоны? (да/нет)", placeholder="да или нет")
 
     async def on_submit(self, interaction: discord.Interaction):
+
+        await interaction.response.defer(ephemeral=True)
+
         nick_value = self.nick.value.strip()
         name_value = self.name.value.strip()
+
         try:
-            r = requests.get("https://api.worldoftanks.eu/wot/account/list/", params={
-                "application_id": WOT_API_KEY,
-                "search": nick_value,
-                "type": "exact",
-                "limit": 1
-            }, timeout=10).json()
+            r = requests.get(
+                "https://api.worldoftanks.eu/wot/account/list/",
+                params={
+                    "application_id": WOT_API_KEY,
+                    "search": nick_value,
+                    "type": "exact",
+                    "limit": 1
+                },
+                timeout=10
+            ).json()
         except Exception as e:
-            await interaction.user.send(f"Ошибка запроса account/list: {e}")
+            await interaction.followup.send(f"Ошибка запроса account/list: {e}", ephemeral=True)
             return
 
         data = r.get("data", [])
         account_id = None
+
         if isinstance(data, dict) and data:
             account_id = list(data.keys())[0]
         elif isinstance(data, list) and data:
             account_id = data[0].get("account_id")
 
         if not account_id:
-            await interaction.user.send(f"Ошибка: игрок '{nick_value}' не найден! Ответ API: {r}")
+            await interaction.followup.send(f"Игрок '{nick_value}' не найден!", ephemeral=True)
             return
 
         try:
-            r2 = requests.get("https://api.worldoftanks.eu/wot/account/info/", params={
-                "application_id": WOT_API_KEY,
-                "account_id": account_id,
-                "fields": "clan_id,nickname"
-            }, timeout=10).json()
+            r2 = requests.get(
+                "https://api.worldoftanks.eu/wot/account/info/",
+                params={
+                    "application_id": WOT_API_KEY,
+                    "account_id": account_id,
+                    "fields": "clan_id,nickname"
+                },
+                timeout=10
+            ).json()
         except Exception as e:
-            await interaction.user.send(f"Ошибка запроса account/info: {e}")
+            await interaction.followup.send(f"Ошибка запроса account/info: {e}", ephemeral=True)
             return
 
         player_data = r2.get("data", {}).get(str(account_id), {})
@@ -62,23 +75,33 @@ class AuthModal(discord.ui.Modal, title="Авторизация в клане"):
         player_nick = player_data.get("nickname", nick_value)
 
         guild = bot.get_guild(GUILD_ID)
-        member = await guild.fetch_member(interaction.user.id) if guild else None
+        member = guild.get_member(interaction.user.id) if guild else None
 
         if player_clan_id != CLAN_ID:
-            await interaction.user.send(f"Ошибка: игрок '{player_nick}' не в клане! Ответ API: {player_data}")
-        else:
-            if member:
-                try:
-                    await member.edit(nick=f"{player_nick} ({name_value})")
-                except:
-                    pass
-                role_to_add = guild.get_role(ROLE_TO_ADD)
-                role_to_remove = guild.get_role(ROLE_TO_REMOVE)
-                if role_to_remove:
-                    await member.remove_roles(role_to_remove)
-                if role_to_add:
-                    await member.add_roles(role_to_add)
-            await interaction.user.send(f"Добро пожаловать в клан '{player_nick} ({name_value})'!")
+            await interaction.followup.send(
+                f"Игрок '{player_nick}' не в клане!",
+                ephemeral=True
+            )
+            return
+            
+        if member:
+            try:
+                await member.edit(nick=f"{player_nick} ({name_value})")
+            except Exception as e:
+                await interaction.followup.send(f"Не удалось изменить ник: {e}", ephemeral=True)
+
+            role_to_add = guild.get_role(ROLE_TO_ADD)
+            role_to_remove = guild.get_role(ROLE_TO_REMOVE)
+
+            if role_to_remove:
+                await member.remove_roles(role_to_remove)
+            if role_to_add:
+                await member.add_roles(role_to_add)
+
+        await interaction.followup.send(
+            f"Авторизация успешна! Добро пожаловать в клан, {player_nick}!",
+            ephemeral=True
+        )
 
 class AuthButton(discord.ui.View):
     def __init__(self):
