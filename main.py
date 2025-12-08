@@ -172,5 +172,8 @@ async def setup_hook():
     bot.loop.create_task(ensure_auth_message())
     bot.loop.create_task(check_clan_members_continuous())
 
+from voiceroom_create import setup_voice_handlers
+setup_voice_handlers(bot)
+
 keep_alive()
 bot.run(os.getenv("TOKEN"))
