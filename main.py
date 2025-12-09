@@ -174,6 +174,9 @@ async def setup_hook():
 
 from voiceroom_create import setup_voice_handlers
 setup_voice_handlers(bot)
+from radioNuNfm import setup_radio
+setup_radio(bot)
+
 
 keep_alive()
 bot.run(os.getenv("TOKEN"))
