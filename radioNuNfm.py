@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands, tasks
 import asyncio
 
-RADIO_STREAM_URL = "https://www.radio.net/s/247continuous"
+RADIO_STREAM_URL = "https://onlineradiobox.com/se/247continuousmusic/?cs=se.247continuousmusic&played=1&lang=ru"
 
 voice_client: discord.VoiceClient | None = None
 current_channel_id = None
