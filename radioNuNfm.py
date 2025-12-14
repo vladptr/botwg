@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands, tasks
 import asyncio
 
-RADIO_STREAM_URL = "https://stream.rcast.net/247continuousmusic"
+RADIO_STREAM_URL = "https://us4.internet-radio.com/proxy/sj128?mp=/stream"
 
 voice_client: discord.VoiceClient | None = None
 current_channel_id = None
