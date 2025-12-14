@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands, tasks
 import asyncio
 
-RADIO_STREAM_URL = "https://us4.internet-radio.com/proxy/sj128?mp=/stream"
+RADIO_STREAM_URL = "https://live.wostreaming.net/direct/ppm-jazz24aac-ibc1"
 
 voice_client: discord.VoiceClient | None = None
 current_channel_id = None
@@ -53,10 +53,22 @@ def setup_radio(bot: commands.Bot):
                 return
               
         if not voice_client.is_playing():
-            ffmpeg_options = {"before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5", "options": "-vn"}
+             ffmpeg_options = {
+                "before_options": (
+                "-reconnect 1 "
+                "-reconnect_streamed 1 "
+                "-reconnect_delay_max 5 "
+                "-user_agent Mozilla/5.0"
+            ),
+            "options": "-vn"
+        }
 
-            source = discord.FFmpegPCMAudio(RADIO_STREAM_URL, **ffmpeg_options)
-            voice_client.play(source)
+        source = discord.FFmpegPCMAudio(
+            RADIO_STREAM_URL,
+            **ffmpeg_options
+        )
+        voice_client.play(source)
+
 
         try:
             await voice_client.ws.ping()
