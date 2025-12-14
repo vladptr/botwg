@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands, tasks
-import asyncio
 
 RADIO_STREAM_URL = "https://live.wostreaming.net/direct/ppm-jazz24aac-ibc1"
 
@@ -22,8 +21,9 @@ def setup_radio(bot: commands.Bot):
 
         if ctx.voice_client:
             voice_client = ctx.voice_client
-            await ctx.send("🔊 Бот уже в голосовом канале, запускаю радио…")
-            ensure_radio_running.start()
+            await ctx.send("🔊 Уже в голосовом канале, запускаю радио…")
+            if not ensure_radio_running.is_running():
+                ensure_radio_running.start()
             return
 
         voice_client = await channel.connect(reconnect=True)
@@ -32,12 +32,6 @@ def setup_radio(bot: commands.Bot):
 
     @tasks.loop(seconds=5)
     async def ensure_radio_running():
-        """
-        Бесконечный мониторинг проигрывателя:
-        - если бот не подключён → подключиться
-        - если поток остановился → перезапустить
-        - если бот вылетел → переподключиться
-        """
         global voice_client, current_channel_id
 
         if current_channel_id is None:
@@ -51,41 +45,36 @@ def setup_radio(bot: commands.Bot):
                 voice_client = await channel.connect(reconnect=True)
             except:
                 return
-              
+
         if not voice_client.is_playing():
-             ffmpeg_options = {
+            ffmpeg_options = {
                 "before_options": (
-                "-reconnect 1 "
-                "-reconnect_streamed 1 "
-                "-reconnect_delay_max 5 "
-                "-user_agent Mozilla/5.0"
-            ),
-            "options": "-vn"
-        }
+                    "-reconnect 1 "
+                    "-reconnect_streamed 1 "
+                    "-reconnect_delay_max 5 "
+                    "-user_agent Mozilla/5.0"
+                ),
+                "options": "-vn"
+            }
 
-        source = discord.FFmpegPCMAudio(
-            RADIO_STREAM_URL,
-            **ffmpeg_options
-        )
-        voice_client.play(source)
+            source = discord.FFmpegPCMAudio(
+                RADIO_STREAM_URL,
+                **ffmpeg_options
+            )
 
-
-        try:
-            await voice_client.ws.ping()
-        except:
-            try:
-                voice_client = await channel.connect(reconnect=True)
-            except:
-                pass
+            voice_client.play(
+                source,
+                after=lambda e: print(f"[RADIO ERROR] {e}") if e else None
+            )
 
     @bot.command(name="leave")
     async def leave(ctx):
-        """Отключение радио (если понадобится)"""
         global voice_client
+
         if ctx.voice_client:
             ensure_radio_running.stop()
             await ctx.voice_client.disconnect()
             voice_client = None
-            await ctx.send("🛑 Радио остановлено и бот отключён.")
+            await ctx.send("🛑 Радио остановлено.")
         else:
-            await ctx.send("❌ Я и так не в голосовом канале.")
+            await ctx.send("❌ Я не в голосовом канале.")
