@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands, tasks
 import asyncio
 
-RADIO_STREAM_URL = "https://onlineradiobox.com/se/247continuousmusic/?cs=se.247continuousmusic&played=1&lang=ru"
+RADIO_STREAM_URL = "https://stream.rcast.net/247continuousmusic"
 
 voice_client: discord.VoiceClient | None = None
 current_channel_id = None
@@ -53,9 +53,8 @@ def setup_radio(bot: commands.Bot):
                 return
               
         if not voice_client.is_playing():
-            ffmpeg_options = {
-                'options': '-vn -loglevel panic'
-            }
+            ffmpeg_options = {"before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5", "options": "-vn"}
+
             source = discord.FFmpegPCMAudio(RADIO_STREAM_URL, **ffmpeg_options)
             voice_client.play(source)
 
